@@ -2,28 +2,616 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Photo Booth</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aesthetic Photo Booth</title>
   <style>
-    video, canvas, img {
-      max-width: 300px;
-      margin: 10px;
-      border: 2px solid #444;
-      border-radius: 8px;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      font-size: 16px;
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      animation: fadeInUp 1s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 {
+      color: white;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      font-weight: 300;
+    }
+
+    .video-container {
+      position: relative;
+      margin-bottom: 30px;
+      overflow: hidden;
+      border-radius: 16px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    #video {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      border-radius: 16px;
+      transition: transform 0.3s ease;
+    }
+
+    #video:hover {
+      transform: scale(1.02);
+    }
+
+    .countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 4rem;
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      opacity: 0;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    .flash-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      opacity: 0;
+      border-radius: 16px;
+      pointer-events: none;
+    }
+
+    .capture-btn {
+      background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+      color: white;
+      border: none;
+      padding: 18px 36px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .capture-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .capture-btn:hover::before {
+      left: 100%;
+    }
+
+    .capture-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px rgba(255, 107, 107, 0.4);
+    }
+
+    .capture-btn:active {
+      transform: translateY(0);
+    }
+
+    .capture-btn:disabled {
+      background: rgba(255, 255, 255, 0.2);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    #canvas {
+      display: none;
+    }
+
+    .result-container {
+      margin-top: 30px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+
+    .result-container.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #result {
+      width: 100%;
+      border-radius: 16px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 20px;
+    }
+
+    .download-link {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .download-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      margin: 20px 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .progress-bar.show {
+      opacity: 1;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .status-text {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1rem;
+      margin-top: 15px;
+      font-weight: 500;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+        margin: 10px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      #video {
+        height: 250px;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>📸 Simple Online Photo Booth</h2>
-  <video id="video" autoplay></video><br>
-  <button onclick="startCapture()">Start</button><br>
-  <canvas id="canvas" width="300" height="225" style="display:none;"></canvas><br>
-  <img id="result" alt="Your photo strip will appear here" />
+  <div class="container">
+    <h1>📸 Photo Booth</h1>
+    <p class="subtitle">Create beautiful photo strips with style</p>
+    
+    <div class="video-container">
+      <video id="video" autoplay muted playsinline></video>
+      <div class="countdown" id="countdown"></div>
+      <div class="flash-overlay" id="flash"></div>
+    </div>
+    
+    <button class="capture-btn" id="captureBtn" onclick="startCapture()">
+      ✨ Capture Photos
+    </button>
+    
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    
+    <div class="status-text" id="statusText"></div>
+    
+    <div class="result-container" id="resultContainer">
+      <img id="result" alt="Your photo strip will appear here" />
+      <div id="downloadContainer"></div>
+    </div>
+    
+    <canvas id="canvas" width="300" height="225"></canvas>
+  </div>
 
-  <script src="/static/script.js"></script>
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const captureBtn = document.getElementById("captureBtn");
+    const countdown = document.getElementById("countdown");
+    const flash = document.getElementById("flash");
+    const progressBar = document.getElementById("progressBar");
+    const progressFill = document.getElementById("progressFill");
+    const statusText = document.getElementById("statusText");
+    const resultContainer = document.getElementById("resultContainer");
+    const downloadContainer = document.getElementById("downloadContainer");
+
+    // Initialize camera
+    navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: "user"
+      } 
+    })
+    .then(stream => {
+      video.srcObject = stream;
+      statusText.textContent = "Camera ready! Click to start capturing.";
+    })
+    .catch(err => {
+      statusText.textContent = "Camera access denied. Please enable camera permissions.";
+      console.error("Camera error:", err);
+    });
+
+    async function startCapture() {
+      captureBtn.disabled = true;
+      captureBtn.textContent = "📸 Capturing...";
+      progressBar.classList.add("show");
+      resultContainer.classList.remove("show");
+      
+      let images = [];
+      const totalPhotos = 3;
+
+      for (let i = 0; i < totalPhotos; i++) {
+        // Update status
+        statusText.textContent = `Preparing photo ${i + 1} of ${totalPhotos}...`;
+        
+        // Countdown
+        for (let count = 3; count > 0; count--) {
+          countdown.textContent = count;
+          countdown.style.opacity = "1";
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          countdown.style.opacity = "0";
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        // Flash effect
+        flash.style.opacity = "0.8";
+        setTimeout(() => flash.style.opacity = "0", 200);
+
+        // Capture photo
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imgData = canvas.toDataURL("image/png");
+        images.push(imgData);
+
+        // Update progress
+        const progress = ((i + 1) / totalPhotos) * 100;
+        progressFill.style.width = progress + "%";
+        
+        if (i < totalPhotos - 1) {
+          statusText.textContent = `Photo ${i + 1} captured! Get ready for the next one...`;
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+      }
+
+      statusText.textContent = "Processing your photo strip...";
+      
+      // Simulate processing and upload
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Create mock photo strip (since we don't have a real backend)
+      createPhotoStrip(images);
+      
+      // Reset UI
+      captureBtn.disabled = false;
+      captureBtn.textContent = "✨ Capture More Photos";
+      progressBar.classList.remove("show");
+      progressFill.style.width = "0%";
+      statusText.textContent = "Photo strip created! Click to capture more.";
+      resultContainer.classList.add("show");
+    }
+
+    function createPhotoStrip(images) {
+      // Create a stunning vertical photo strip
+      const stripCanvas = document.createElement("canvas");
+      const stripCtx = stripCanvas.getContext("2d");
+      
+      const photoWidth = 320;
+      const photoHeight = 240;
+      const padding = 40;
+      const headerHeight = 120;
+      const footerHeight = 100;
+      const photoSpacing = 60; // Increased spacing between photos
+      const spacerHeight = 40; // Height of decorative spacer between photos
+      
+      stripCanvas.width = photoWidth + (padding * 2);
+      stripCanvas.height = headerHeight + (photoHeight * images.length) + (photoSpacing * (images.length - 1)) + footerHeight;
+      
+      // Create sophisticated gradient background
+      const bgGradient = stripCtx.createLinearGradient(0, 0, stripCanvas.width, stripCanvas.height);
+      bgGradient.addColorStop(0, '#1a1a2e');
+      bgGradient.addColorStop(0.3, '#16213e');
+      bgGradient.addColorStop(0.6, '#0f3460');
+      bgGradient.addColorStop(1, '#e94560');
+      stripCtx.fillStyle = bgGradient;
+      stripCtx.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
+      
+      // Add geometric pattern overlay
+      stripCtx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      for (let i = 0; i < stripCanvas.width; i += 30) {
+        for (let j = 0; j < stripCanvas.height; j += 30) {
+          stripCtx.beginPath();
+          stripCtx.moveTo(i, j);
+          stripCtx.lineTo(i + 15, j + 15);
+          stripCtx.lineTo(i, j + 30);
+          stripCtx.lineTo(i - 15, j + 15);
+          stripCtx.closePath();
+          stripCtx.fill();
+        }
+      }
+      
+      // Add glowing border effect
+      const borderGradient = stripCtx.createLinearGradient(0, 0, stripCanvas.width, 0);
+      borderGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+      borderGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
+      borderGradient.addColorStop(1, 'rgba(255, 255, 255, 0.3)');
+      stripCtx.strokeStyle = borderGradient;
+      stripCtx.lineWidth = 3;
+      stripCtx.strokeRect(5, 5, stripCanvas.width - 10, stripCanvas.height - 10);
+      
+      // Create stunning header
+      const headerGradient = stripCtx.createLinearGradient(0, 0, stripCanvas.width, headerHeight);
+      headerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+      headerGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+      stripCtx.fillStyle = headerGradient;
+      stripCtx.fillRect(padding - 20, 20, stripCanvas.width - 2 * (padding - 20), headerHeight - 40);
+      
+      // Add header text with glow effect
+      stripCtx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      stripCtx.shadowBlur = 10;
+      stripCtx.fillStyle = '#ffffff';
+      stripCtx.font = 'bold 28px Inter, sans-serif';
+      stripCtx.textAlign = 'center';
+      stripCtx.fillText('✨ PHOTO MEMORIES ✨', stripCanvas.width / 2, 50);
+      
+      stripCtx.shadowBlur = 5;
+      stripCtx.font = '16px Inter, sans-serif';
+      stripCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      const date = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      stripCtx.fillText(date, stripCanvas.width / 2, 75);
+      
+      // Add decorative line
+      const lineGradient = stripCtx.createLinearGradient(padding, 0, stripCanvas.width - padding, 0);
+      lineGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      lineGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.6)');
+      lineGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      stripCtx.strokeStyle = lineGradient;
+      stripCtx.lineWidth = 2;
+      stripCtx.beginPath();
+      stripCtx.moveTo(padding, 95);
+      stripCtx.lineTo(stripCanvas.width - padding, 95);
+      stripCtx.stroke();
+      
+      stripCtx.shadowBlur = 0;
+      
+      // Add photos with premium frames and decorative spacers
+      let loadedImages = 0;
+      images.forEach((imgData, index) => {
+        const img = new Image();
+        img.onload = () => {
+          const y = headerHeight + (index * (photoHeight + photoSpacing));
+          
+          // Add decorative spacer between photos (except before first photo)
+          if (index > 0) {
+            const spacerY = y - photoSpacing + 10;
+            
+            // Create emoji array for variety
+            const emojis = ['✨', '💫', '🌟', '⭐', '🎉', '🎊', '💖', '🌈', '🦋', '🌸', '🎭', '🎨'];
+            const selectedEmojis = [
+              emojis[Math.floor(Math.random() * emojis.length)],
+              emojis[Math.floor(Math.random() * emojis.length)],
+              emojis[Math.floor(Math.random() * emojis.length)]
+            ];
+            
+            // Draw decorative line with emojis
+            stripCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            stripCtx.lineWidth = 1;
+            stripCtx.setLineDash([10, 5]);
+            stripCtx.beginPath();
+            stripCtx.moveTo(padding + 20, spacerY + 20);
+            stripCtx.lineTo(stripCanvas.width - padding - 20, spacerY + 20);
+            stripCtx.stroke();
+            stripCtx.setLineDash([]);
+            
+            // Add emojis in the spacer
+            stripCtx.font = '20px Arial';
+            stripCtx.textAlign = 'center';
+            stripCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            
+            // Center emoji
+            stripCtx.fillText(selectedEmojis[0], stripCanvas.width / 2, spacerY + 27);
+            
+            // Side emojis
+            stripCtx.fillText(selectedEmojis[1], stripCanvas.width / 2 - 40, spacerY + 27);
+            stripCtx.fillText(selectedEmojis[2], stripCanvas.width / 2 + 40, spacerY + 27);
+            
+            // Add small decorative dots
+            stripCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            for (let i = 0; i < 5; i++) {
+              const dotX = padding + 30 + (i * 50);
+              stripCtx.beginPath();
+              stripCtx.arc(dotX, spacerY + 35, 2, 0, 2 * Math.PI);
+              stripCtx.fill();
+            }
+          }
+          
+          // Create photo frame with multiple layers
+          // Outer glow
+          stripCtx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+          stripCtx.shadowBlur = 20;
+          stripCtx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+          stripCtx.fillRect(padding - 15, y - 15, photoWidth + 30, photoHeight + 30);
+          
+          // Main frame
+          stripCtx.shadowBlur = 10;
+          stripCtx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+          stripCtx.fillRect(padding - 10, y - 10, photoWidth + 20, photoHeight + 20);
+          
+          // Inner frame
+          stripCtx.shadowBlur = 5;
+          stripCtx.fillStyle = '#ffffff';
+          stripCtx.fillRect(padding - 5, y - 5, photoWidth + 10, photoHeight + 10);
+          
+          stripCtx.shadowBlur = 0;
+          
+          // Create clipping path for rounded photo
+          stripCtx.save();
+          stripCtx.beginPath();
+          stripCtx.roundRect(padding, y, photoWidth, photoHeight, 12);
+          stripCtx.clip();
+          
+          // Draw photo with enhanced contrast
+          stripCtx.filter = 'contrast(1.1) saturate(1.2) brightness(1.05)';
+          stripCtx.drawImage(img, padding, y, photoWidth, photoHeight);
+          stripCtx.filter = 'none';
+          stripCtx.restore();
+          
+          // Add photo number badge
+          const badgeX = padding + photoWidth - 35;
+          const badgeY = y + 15;
+          
+          stripCtx.fillStyle = 'rgba(233, 69, 96, 0.9)';
+          stripCtx.beginPath();
+          stripCtx.arc(badgeX, badgeY, 15, 0, 2 * Math.PI);
+          stripCtx.fill();
+          
+          stripCtx.fillStyle = 'white';
+          stripCtx.font = 'bold 14px Inter, sans-serif';
+          stripCtx.textAlign = 'center';
+          stripCtx.fillText(`${index + 1}`, badgeX, badgeY + 5);
+          
+          // Add corner decorations
+          stripCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          // Top left corner
+          stripCtx.beginPath();
+          stripCtx.moveTo(padding - 3, y - 3);
+          stripCtx.lineTo(padding + 12, y - 3);
+          stripCtx.lineTo(padding - 3, y + 12);
+          stripCtx.closePath();
+          stripCtx.fill();
+          
+          // Bottom right corner
+          stripCtx.beginPath();
+          stripCtx.moveTo(padding + photoWidth + 3, y + photoHeight + 3);
+          stripCtx.lineTo(padding + photoWidth - 12, y + photoHeight + 3);
+          stripCtx.lineTo(padding + photoWidth + 3, y + photoHeight - 12);
+          stripCtx.closePath();
+          stripCtx.fill();
+          
+          loadedImages++;
+          
+          // If this is the last image, finalize the strip
+          if (loadedImages === images.length) {
+            // Add premium footer
+            const footerY = headerHeight + (images.length * photoHeight) + ((images.length - 1) * photoSpacing) + 20;
+            
+            // Footer background
+            const footerGradient = stripCtx.createLinearGradient(0, footerY, stripCanvas.width, footerY + 60);
+            footerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+            footerGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+            stripCtx.fillStyle = footerGradient;
+            stripCtx.fillRect(padding - 20, footerY, stripCanvas.width - 2 * (padding - 20), 60);
+            
+            // Footer text with glow
+            stripCtx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+            stripCtx.shadowBlur = 8;
+            stripCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            stripCtx.font = 'bold 16px Inter, sans-serif';
+            stripCtx.textAlign = 'center';
+            stripCtx.fillText('✨ AESTHETIC PHOTO BOOTH ✨', stripCanvas.width / 2, footerY + 25);
+            
+            stripCtx.shadowBlur = 3;
+            stripCtx.font = '12px Inter, sans-serif';
+            stripCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            stripCtx.fillText('Premium Quality • Instant Memories', stripCanvas.width / 2, footerY + 45);
+            
+            stripCtx.shadowBlur = 0;
+            
+            const finalImageData = stripCanvas.toDataURL("image/png");
+            
+            // Display result
+            const resultImg = document.getElementById("result");
+            resultImg.src = finalImageData;
+            
+            // Create download link
+            const downloadLink = document.createElement("a");
+            downloadLink.href = finalImageData;
+            downloadLink.download = `premium-photo-strip-${Date.now()}.png`;
+            downloadLink.className = "download-link";
+            downloadLink.textContent = "📥 Download Premium Strip";
+            
+            downloadContainer.innerHTML = "";
+            downloadContainer.appendChild(downloadLink);
+          }
+        };
+        img.src = imgData;
+      });
+    }
+  </script>
 </body>
 </html>
